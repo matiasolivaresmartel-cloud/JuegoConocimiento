@@ -1,0 +1,355 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Juego de Conocimiento sobre Caballos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), url('https://images.unsplash.com/photo-1545252587-1f87a2da9373?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }
+        .option-button {
+            transition: transform 0.2s ease-in-out, background-color 0.3s;
+        }
+        .option-button:hover {
+            transform: scale(1.05);
+        }
+        .option-button:disabled {
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+        .welcome-text {
+            animation: fadeIn 2s ease-in-out;
+        }
+        .title-pulse {
+            animation: pulse 2s infinite ease-in-out;
+        }
+        @keyframes fadeIn {
+            0% { opacity: 0; transform: translateY(-20px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        .action-button {
+            transition: transform 0.3s ease-in-out, background-color 0.3s;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        }
+        .action-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+        }
+        .welcome-border {
+            border: 2px solid #d97706;
+            border-image: linear-gradient(to right, #d97706, #15803d) 1;
+        }
+        .horse-image {
+            border: 3px solid;
+            border-image: linear-gradient(to right, #d97706, #15803d) 1;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen">
+    <!-- Portada de bienvenida -->
+    <div id="welcome-screen" class="bg-white bg-opacity-90 p-10 rounded-2xl shadow-2xl w-full max-w-md text-center transform transition-all welcome-border">
+        <img src="https://images.unsplash.com/photo-1595814433015-3593b23c9d44?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80" alt="Caballo" class="horse-image rounded-full mx-auto mb-4 w-32 h-32 object-cover">
+        <h1 class="text-4xl font-bold text-amber-800 mb-4 font-serif title-pulse">🐎 ¡Juego de Caballos! 🐎</h1>
+        <p class="text-lg text-gray-800 mb-8 italic welcome-text bg-amber-100 p-4 rounded-lg">¡Galopa al conocimiento y descubre el fascinante mundo de los caballos! 🌾</p>
+        <button id="learn-button" class="action-button bg-amber-600 text-white py-4 px-6 rounded-lg hover:bg-amber-700 mb-4 w-full text-xl font-medium">📚 Aprender sobre caballos</button>
+        <button id="start-button" class="action-button bg-green-600 text-white py-4 px-6 rounded-lg hover:bg-green-700 w-full text-xl font-medium">🐴 Iniciar juego</button>
+    </div>
+
+    <!-- Sección de aprendizaje -->
+    <div id="learn-screen" class="bg-white bg-opacity-95 p-10 rounded-2xl shadow-2xl w-full max-w-md text-left transform transition-all hidden">
+        <h2 class="text-3xl font-bold text-amber-800 mb-6 font-serif text-center">📖 Aprende sobre caballos</h2>
+        <p class="text-gray-700 mb-6 text-center">Prepárate para el juego con estos temas clave sobre los caballos:</p>
+        <div class="space-y-6">
+            <div>
+                <h3 class="text-lg font-semibold text-amber-700">Anatomía de los caballos</h3>
+                <p class="text-gray-700">Conoce datos sobre los <strong>dientes</strong>, la <strong>altura</strong> (medida en la cruz) y los <strong>sentidos</strong>, como su increíble visión de casi 360 grados.</p>
+            </div>
+            <div>
+                <h3 class="text-lg font-semibold text-amber-700">Razas de caballos</h3>
+                <p class="text-gray-700">Descubre razas únicas como el <strong>Pura Sangre</strong>, famoso por su velocidad, o la <strong>Appaloosa</strong>, conocida por su pelaje moteado.</p>
+            </div>
+            <div>
+                <h3 class="text-lg font-semibold text-amber-700">Deportes ecuestres</h3>
+                <p class="text-gray-700">Aprende sobre disciplinas como el <strong>salto ecuestre</strong>, donde los caballos superan obstáculos con agilidad.</p>
+            </div>
+            <div>
+                <h3 class="text-lg font-semibold text-amber-700">Alimentación</h3>
+                <p class="text-gray-700">Los caballos son <strong>herbívoros</strong> y se alimentan de pasto, heno y granos para mantenerse fuertes.</p>
+            </div>
+            <div>
+                <h3 class="text-lg font-semibold text-amber-700">Cuidado de los caballos</h3>
+                <p class="text-gray-700">Entérate sobre el <strong>herrado</strong>, el proceso de colocar herraduras para proteger los cascos de los caballos.</p>
+            </div>
+        </div>
+        <button id="back-to-welcome" class="action-button bg-gray-600 text-white py-3 px-6 rounded-lg hover:bg-gray-700 mt-8 w-full text-lg font-medium">Volver ⬅️</button>
+        <button id="start-from-learn" class="action-button bg-green-600 text-white py-3 px-6 rounded-lg hover:bg-green-700 mt-4 w-full text-lg font-medium">Iniciar juego 🐴</button>
+    </div>
+
+    <!-- Contenedor del juego (inicialmente oculto) -->
+    <div id="game-screen" class="bg-white bg-opacity-90 p-8 rounded-2xl shadow-2xl w-full max-w-lg transform transition-all hidden">
+        <h1 class="text-3xl font-bold text-center text-amber-800 mb-4 font-serif">🐎 Juego de Conocimiento sobre Caballos 🐎</h1>
+        <p class="text-center text-gray-700 mb-6 italic">¡Galopa hacia el conocimiento y descubre cuánto sabes!</p>
+        <div id="score" class="text-center text-xl font-semibold mb-6 text-green-700">Puntuación: <span id="score-value" class="text-amber-600">0</span> 🏆</div>
+        <div id="question-container" class="mb-6">
+            <p id="question" class="text-lg font-medium text-gray-800 bg-amber-100 p-4 rounded-lg"></p>
+            <div id="options" class="mt-4 space-y-3"></div>
+        </div>
+        <div id="feedback" class="text-center text-gray-700 mb-6 font-medium"></div>
+        <button id="home-button" class="action-button bg-gray-600 text-white py-3 rounded-lg hover:bg-gray-700 transition duration-300 transform hover:scale-105 mb-4 w-full">Volver al inicio ⬅️</button>
+        <button id="next-button" class="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition duration-300 transform hover:scale-105 hidden">Siguiente Pregunta ➡️</button>
+    </div>
+
+    <!-- Pantalla de agradecimiento (inicialmente oculta) -->
+    <div id="thank-you-screen" class="bg-white bg-opacity-90 p-10 rounded-2xl shadow-2xl w-full max-w-md text-center transform transition-all hidden">
+        <h1 class="text-3xl font-bold text-amber-800 mb-4 font-serif title-pulse">¡Muchas gracias por participar! 🏆</h1>
+        <p class="text-xl text-gray-800 mb-6">Tu puntuación final es <span id="final-score" class="text-amber-600 font-semibold">0</span>.</p>
+        <img src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80" alt="Caballo majestuoso" class="horse-image rounded-full mx-auto mb-4 w-32 h-32 object-cover">
+        <p class="text-gray-700 mb-6 font-medium">¡Disfruta de esta imagen de un caballo majestuoso!</p>
+        <button id="restart-button" class="action-button bg-amber-600 text-white py-3 rounded-lg hover:bg-amber-700 transition duration-300 transform hover:scale-105 w-full">Volver a jugar 🔄</button>
+    </div>
+
+    <script>
+        const questions = [
+            {
+                question: "¿Cuántos dientes tiene un caballo adulto?",
+                options: ["32", "40", "36", "44"],
+                correct: "40",
+                feedback: "Un caballo adulto tiene 40 dientes, que incluyen incisivos, molares y premolares."
+            },
+            {
+                question: "¿Cuál es la esperanza de vida promedio de un caballo?",
+                options: ["10-15 años", "15-20 años", "25-30 años", "35-40 años"],
+                correct: "25-30 años",
+                feedback: "La esperanza de vida promedio de un caballo es de 25 a 30 años, aunque algunos pueden vivir más con buen cuidado."
+            },
+            {
+                question: "¿Qué raza de caballo es conocida por su velocidad en carreras?",
+                options: ["Clydesdale", "Pura Sangre", "Appaloosa", "Mustang"],
+                correct: "Pura Sangre",
+                feedback: "El Pura Sangre es famoso por su velocidad y se utiliza ampliamente en carreras de caballos."
+            },
+            {
+                question: "¿Cómo se llama el paso más rápido de un caballo?",
+                options: ["Trote", "Galope", "Paso", "Canto"],
+                correct: "Galope",
+                feedback: "El galope es el paso más rápido de un caballo, alcanzando velocidades de hasta 48 km/h."
+            },
+            {
+                question: "¿Qué sentido es el más desarrollado en los caballos?",
+                options: ["Olfato", "Vista", "Oído", "Tacto"],
+                correct: "Vista",
+                feedback: "Los caballos tienen una visión casi de 360 grados, lo que les ayuda a detectar depredadores."
+            },
+            {
+                question: "¿Qué parte del cuerpo de un caballo se mide para determinar su altura?",
+                options: ["Cabeza", "Cruz", "Pecho", "Cola"],
+                correct: "Cruz",
+                feedback: "La altura de un caballo se mide desde el suelo hasta la cruz, el punto más alto de su espalda."
+            },
+            {
+                question: "¿Cuál es el nombre del deporte en el que los caballos saltan obstáculos?",
+                options: ["Polo", "Doma clásica", "Salto ecuestre", "Carreras de barriles"],
+                correct: "Salto ecuestre",
+                feedback: "El salto ecuestre es un deporte donde los caballos y jinetes superan obstáculos en un recorrido."
+            },
+            {
+                question: "¿Qué tipo de alimentación tienen los caballos?",
+                options: ["Carnívoros", "Omnívoros", "Herbívoros", "Insectívoros"],
+                correct: "Herbívoros",
+                feedback: "Los caballos son herbívoros y su dieta se basa principalmente en pasto, heno y granos."
+            },
+            {
+                question: "¿Qué raza de caballo es conocida por su distintivo pelaje moteado?",
+                options: ["Frisón", "Appaloosa", "Árabe", "Percherón"],
+                correct: "Appaloosa",
+                feedback: "La raza Appaloosa es famosa por su pelaje moteado, especialmente en la grupa."
+            },
+            {
+                question: "¿Cómo se llama el proceso de herrar a un caballo?",
+                options: ["Cepillado", "Herrado", "Domado", "Corte"],
+                correct: "Herrado",
+                feedback: "El herrado es el proceso de colocar herraduras en los cascos de un caballo para protegerlos."
+            }
+        ];
+
+        let currentQuestionIndex = 0;
+        let score = 0;
+
+        const welcomeScreen = document.getElementById('welcome-screen');
+        const learnScreen = document.getElementById('learn-screen');
+        const gameScreen = document.getElementById('game-screen');
+        const thankYouScreen = document.getElementById('thank-you-screen');
+        const learnButton = document.getElementById('learn-button');
+        const startButton = document.getElementById('start-button');
+        const backToWelcomeButton = document.getElementById('back-to-welcome');
+        const startFromLearnButton = document.getElementById('start-from-learn');
+        const homeButton = document.getElementById('home-button');
+        const questionElement = document.getElementById('question');
+        const optionsElement = document.getElementById('options');
+        const feedbackElement = document.getElementById('feedback');
+        const scoreElement = document.getElementById('score-value');
+        const finalScoreElement = document.getElementById('final-score');
+        const nextButton = document.getElementById('next-button');
+        const restartButton = document.getElementById('restart-button');
+
+        // Mostrar pantalla de aprendizaje
+        learnButton.addEventListener('click', () => {
+            welcomeScreen.classList.add('hidden');
+            learnScreen.classList.remove('hidden');
+        });
+
+        // Volver a la portada desde la pantalla de aprendizaje
+        backToWelcomeButton.addEventListener('click', () => {
+            learnScreen.classList.add('hidden');
+            welcomeScreen.classList.remove('hidden');
+        });
+
+        // Iniciar juego desde la portada o la pantalla de aprendizaje
+        function startGame() {
+            welcomeScreen.classList.add('hidden');
+            learnScreen.classList.add('hidden');
+            thankYouScreen.classList.add('hidden');
+            gameScreen.classList.remove('hidden');
+            currentQuestionIndex = 0;
+            score = 0;
+            scoreElement.textContent = score;
+            loadQuestion();
+        }
+
+        startButton.addEventListener('click', startGame);
+        startFromLearnButton.addEventListener('click', startGame);
+
+        // Volver a la portada desde el juego
+        homeButton.addEventListener('click', () => {
+            gameScreen.classList.add('hidden');
+            welcomeScreen.classList.remove('hidden');
+            currentQuestionIndex = 0;
+            score = 0;
+            scoreElement.textContent = score;
+            feedbackElement.textContent = '';
+            nextButton.classList.add('hidden');
+        });
+
+        // Volver a jugar desde la pantalla de agradecimiento
+        restartButton.addEventListener('click', () => {
+            thankYouScreen.classList.add('hidden');
+            welcomeScreen.classList.remove('hidden');
+            currentQuestionIndex = 0;
+            score = 0;
+            scoreElement.textContent = score;
+            feedbackElement.textContent = '';
+        });
+
+        function loadQuestion() {
+            const currentQuestion = questions[currentQuestionIndex];
+            questionElement.textContent = currentQuestion.question;
+            optionsElement.innerHTML = '';
+            feedbackElement.innerHTML = '';
+            nextButton.classList.add('hidden');
+
+            currentQuestion.options.forEach(option => {
+                const button = document.createElement('button');
+                button.textContent = option;
+                button.classList.add('w-full', 'bg-amber-200', 'py-3', 'rounded-lg', 'hover:bg-amber-300', 'option-button', 'text-gray-800', 'font-medium');
+                button.addEventListener('click', () => checkAnswer(option));
+                optionsElement.appendChild(button);
+            });
+        }
+
+        function checkAnswer(selected) {
+            const currentQuestion = questions[currentQuestionIndex];
+            let feedbackText = '';
+            if (selected === currentQuestion.correct) {
+                score += 10;
+                feedbackText = `✅ ¡Correcto! ${currentQuestion.feedback}`;
+                feedbackElement.classList.add('text-green-700');
+                scoreElement.textContent = score;
+            } else {
+                feedbackText = `❌ Incorrecto. ${currentQuestion.feedback}`;
+                feedbackElement.classList.add('text-red-700');
+            }
+
+            const buttons = optionsElement.getElementsByTagName('button');
+            for (let button of buttons) {
+                button.disabled = true;
+                if (button.textContent === currentQuestion.correct) {
+                    button.classList.add('bg-green-500', 'text-white');
+                } else if (button.textContent === selected && selected !== currentQuestion.correct) {
+                    button.classList.add('bg-red-500', 'text-white');
+                }
+            }
+
+            // Mostrar imagen después de la 5ta pregunta (índice 4)
+            if (currentQuestionIndex === 4) {
+                feedbackText += `<div class="mt-4"><img src="https://images.unsplash.com/photo-1518715155418-59db9a23c1e3?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80" alt="Caballo corriendo" class="horse-image rounded-full mx-auto w-32 h-32 object-cover"><p class="mt-2 text-gray-700 font-medium">¡Estás a mitad de camino! 🐎 Mira este caballo en acción.</p></div>`;
+                nextButton.classList.remove('hidden');
+            }
+            // Mostrar pantalla de agradecimiento después de la última pregunta (índice 9)
+            else if (currentQuestionIndex === questions.length - 1) {
+                gameScreen.classList.add('hidden');
+                thankYouScreen.classList.remove('hidden');
+                finalScoreElement.textContent = score;
+            } else {
+                nextButton.classList.remove('hidden');
+            }
+
+            feedbackElement.innerHTML = feedbackText;
+        }
+
+        nextButton.addEventListener('click', () => {
+            currentQuestionIndex++;
+            loadQuestion();
+        });
+    </script>
+</body>
+</html>
